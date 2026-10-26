@@ -1,0 +1,95 @@
+name: e2e
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      NODE_OPTIONS: "--max-old-space-size=6144"
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+    steps:
+      - name: Add swap
+        run: |
+          sudo fallocate -l 8G /swapfile2 && sudo chmod 600 /swapfile2
+          sudo mkswap /swapfile2 && sudo swapon /swapfile2 && free -g
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install dependencies
+        uses: ./.github/actions/yarn-install
+
+      - name: Build twenty-shared
+        run: npx nx build twenty-shared
+
+      - name: Install Playwright Browsers
+        run: npx nx setup twenty-e2e-testing
+
+      - name: Setup environment files
+        run: |
+          cp packages/twenty-front/.env.example packages/twenty-front/.env
+          npx nx reset:env:e2e-testing-server twenty-server
+
+      - name: Build frontend
+        run: NODE_ENV=production npx nx build twenty-front
+
+      - name: Build server
+        run: npx nx build twenty-server
+
+      - name: Create and setup database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d postgres -c 'CREATE DATABASE "default";'
+          PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d postgres -c 'CREATE DATABASE "test";'
+          npx nx run twenty-server:database:reset
+
+      - name: Serve the frontend from the server
+        run: cp -r packages/twenty-front/build packages/twenty-server/dist/front
+
+      - name: Start server
+        run: |
+          npx nx run twenty-server:start:ci > /tmp/server.log 2>&1 &
+          timeout 180 bash -c 'until curl -sf http://localhost:3000/healthz > /dev/null; do sleep 2; done'
+
+      - name: Start worker
+        run: npx nx run twenty-server:worker > /tmp/worker.log 2>&1 &
+
+      - name: Run e2e tests
+        working-directory: packages/twenty-e2e-testing
+        env:
+          FRONTEND_BASE_URL: http://localhost:3000
+        run: yarn playwright test tests/task-relations-grouped-view.spec.ts
+
+      - name: Upload Playwright results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            packages/twenty-e2e-testing/run_results/
+            /tmp/server.log
+            /tmp/worker.log
+          retention-days: 30
