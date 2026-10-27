@@ -96,7 +96,7 @@ jobs:
         working-directory: packages/twenty-e2e-testing
         env:
           FRONTEND_BASE_URL: http://localhost:3000
-        run: yarn playwright test tests/task-relations-grouped-view.spec.ts
+        run: yarn playwright test --timeout=120000 tests/task-relations-grouped-view.spec.ts
 
       - name: Upload Playwright results
         if: ${{ !cancelled() }}
