@@ -25,7 +25,8 @@ test('Task stays in its group after adding a relation', async ({ page }) => {
   expect(taskId).toBeTruthy();
 
   await page.reload();
-  await page.getByRole('button', { name: /All Tasks/ }).click();
+  // The view picker reads "<current view> · <record count>".
+  await page.getByRole('button', { name: / · [\d,]+$/ }).first().click();
   await page.getByText('Assigned to Me', { exact: true }).click();
 
   const taskCells = page.locator(`[data-record-table-record-id="${taskId}"]`);
