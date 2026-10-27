@@ -7,7 +7,15 @@ const TIM_WORKSPACE_MEMBER_ID = '20202020-0687-4c41-b707-ed1bfca972a7';
 test('Task stays in its group after adding a relation', async ({ page }) => {
   const title = `Grouped task ${Date.now()}`;
 
+  // Open the "Assigned to Me" table first, so the reload below lands on it
+  // directly. The view picker reads "<current view> · <record count>".
   await page.goto('/objects/tasks');
+  await page.getByRole('button', { name: / · [\d,]+$/ }).first().click();
+  await page.getByText('Assigned to Me', { exact: true }).click();
+  await expect(page).toHaveURL(/viewId=/);
+  await expect(
+    page.getByRole('button', { name: /^Assigned to Me · / }),
+  ).toBeVisible();
 
   const created = await postBackendGraphQL<{ createTask: { id: string } }>({
     page,
@@ -25,9 +33,9 @@ test('Task stays in its group after adding a relation', async ({ page }) => {
   expect(taskId).toBeTruthy();
 
   await page.reload();
-  // The view picker reads "<current view> · <record count>".
-  await page.getByRole('button', { name: / · [\d,]+$/ }).first().click();
-  await page.getByText('Assigned to Me', { exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: /^Assigned to Me · / }),
+  ).toBeVisible();
 
   const taskCells = page.locator(`[data-record-table-record-id="${taskId}"]`);
   await expect(page.getByText(title, { exact: true })).toBeVisible();
