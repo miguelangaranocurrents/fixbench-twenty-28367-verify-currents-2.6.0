@@ -46,7 +46,10 @@ jobs:
         env:
           NODE_OPTIONS: ""
           YARN_CACHE_FOLDER: ${{ runner.temp }}/yarn-cache
-        run: yarn install --immutable
+          YARN_TASK_POOL_MODE: async
+        run: |
+          df -h "$RUNNER_TEMP" .
+          yarn install --immutable
 
       - name: Build twenty-shared
         run: npx nx build twenty-shared
