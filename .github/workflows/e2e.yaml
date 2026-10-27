@@ -43,7 +43,10 @@ jobs:
           node-version: lts/*
 
       - name: Install dependencies
-        uses: ./.github/actions/yarn-install
+        env:
+          NODE_OPTIONS: ""
+          YARN_CACHE_FOLDER: ${{ runner.temp }}/yarn-cache
+        run: yarn install --immutable
 
       - name: Build twenty-shared
         run: npx nx build twenty-shared
