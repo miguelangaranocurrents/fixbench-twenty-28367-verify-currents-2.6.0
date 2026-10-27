@@ -86,6 +86,12 @@ jobs:
       - name: Start worker
         run: npx nx run twenty-server:worker > /tmp/worker.log 2>&1 &
 
+      - name: Warm up the app
+        run: |
+          for i in 1 2 3; do curl -s -o /dev/null -w "front %{http_code} %{time_total}s\n" http://localhost:3000/; done
+          curl -s -o /dev/null -w "graphql %{http_code} %{time_total}s\n" -X POST -H 'Content-Type: application/json' -d '{"query":"{ __typename }"}' http://localhost:3000/graphql
+          sleep 20
+
       - name: Run e2e tests
         working-directory: packages/twenty-e2e-testing
         env:
