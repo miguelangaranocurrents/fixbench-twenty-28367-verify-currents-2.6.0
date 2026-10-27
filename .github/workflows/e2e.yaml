@@ -29,10 +29,12 @@ jobs:
         ports:
           - 6379:6379
     steps:
-      - name: Add swap
+      - name: Free disk space and add swap
         run: |
-          sudo fallocate -l 8G /swapfile2 && sudo chmod 600 /swapfile2
-          sudo mkswap /swapfile2 && sudo swapon /swapfile2 && free -g
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          sudo fallocate -l 8G /mnt/swapfile2 && sudo chmod 600 /mnt/swapfile2
+          sudo mkswap /mnt/swapfile2 && sudo swapon /mnt/swapfile2
+          free -g && df -h / /mnt
 
       - uses: actions/checkout@v4
 
