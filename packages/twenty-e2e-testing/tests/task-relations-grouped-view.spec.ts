@@ -49,8 +49,16 @@ test('Task stays in its group after adding a relation', async ({ page }) => {
 
   await relationsCell.click();
   await page.keyboard.type('Microsoft');
+  const relationSaved = page.waitForResponse(
+    (response) =>
+      response.url().includes('/graphql') &&
+      /createTaskTargets/i.test(response.request().postData() ?? ''),
+  );
   await page.getByRole('option', { name: /Microsoft/ }).first().click();
+  await relationSaved;
   await page.keyboard.press('Escape');
+  // Give the table time to apply the saved relation before checking the row.
+  await page.waitForTimeout(2000);
 
   await expect(page.getByText(title, { exact: true })).toBeVisible();
   await expect(relationsCell).toContainText('Microsoft');
