@@ -49,6 +49,18 @@ test('Task stays in its group after adding a relation', async ({ page }) => {
 
   await relationsCell.click();
   await page.keyboard.type('Microsoft');
+
+  // Watch every frame: the task must never leave the table while the relation is saved.
+  await page.evaluate((taskTitle) => {
+    const w = window as unknown as { taskMissing: boolean };
+    w.taskMissing = false;
+    const check = () => {
+      if (!document.body.innerText.includes(taskTitle)) w.taskMissing = true;
+      requestAnimationFrame(check);
+    };
+    requestAnimationFrame(check);
+  }, title);
+
   const relationSaved = page.waitForResponse(
     (response) =>
       response.url().includes('/graphql') &&
@@ -57,9 +69,12 @@ test('Task stays in its group after adding a relation', async ({ page }) => {
   await page.getByRole('option', { name: /Microsoft/ }).first().click();
   await relationSaved;
   await page.keyboard.press('Escape');
-  // Give the table time to apply the saved relation before checking the row.
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(3000);
 
+  const taskMissing = await page.evaluate(
+    () => (window as unknown as { taskMissing: boolean }).taskMissing,
+  );
+  expect(taskMissing, 'the task disappeared from the table').toBe(false);
   await expect(page.getByText(title, { exact: true })).toBeVisible();
   await expect(relationsCell).toContainText('Microsoft');
 });
