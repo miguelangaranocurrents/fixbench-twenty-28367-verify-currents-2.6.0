@@ -22,7 +22,8 @@ export default defineConfig({
   timeout: process.env.CI ? 60_000 : 30 * 1000,
   use: {
     baseURL: process.env.FRONTEND_BASE_URL || 'http://localhost:3001',
-    trace: 'retain-on-failure',
+    trace: 'on',
+    video: 'on',
     screenshot: 'on',
     headless: true, // instead of changing it to false, run 'yarn test:e2e:debug' or 'yarn test:e2e:ui'
     testIdAttribute: 'data-testid',
