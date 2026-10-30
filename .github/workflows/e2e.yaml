@@ -96,6 +96,8 @@ jobs:
         working-directory: packages/twenty-e2e-testing
         env:
           FRONTEND_BASE_URL: http://localhost:3000
+          CURRENTS_RECORD_KEY: ${{ secrets.CURRENTS_RECORD_KEY }}
+          CURRENTS_PROJECT_ID: ${{ secrets.CURRENTS_PROJECT_ID }}
         run: yarn playwright test --timeout=120000 tests/task-relations-grouped-view.spec.ts
 
       - name: Upload Playwright results
@@ -107,4 +109,12 @@ jobs:
             packages/twenty-e2e-testing/run_results/
             /tmp/server.log
             /tmp/worker.log
+          retention-days: 30
+
+      - name: Upload Currents report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: currents
+          path: packages/twenty-e2e-testing/currents-report.json
           retention-days: 30
