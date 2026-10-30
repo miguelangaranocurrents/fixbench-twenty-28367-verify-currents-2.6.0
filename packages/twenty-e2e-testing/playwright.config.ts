@@ -1,7 +1,9 @@
+import { currentsReporter } from '@currents/playwright';
 import { defineConfig, devices } from '@playwright/test';
 import { config } from 'dotenv';
 import * as path from 'path';
 import { AUTH_STORAGE_STATE_PATH } from './lib/constants/authStorageStatePath';
+import currentsConfig from './currents.config';
 
 const envResult = config({
   path: path.resolve(__dirname, '.env'),
@@ -35,6 +37,7 @@ export default defineConfig({
   reporter: [
     [process.env.CI ? 'github' : 'list'],
     ['./reporters/log-summary-reporter.ts'],
+    ...(process.env.CURRENTS_RECORD_KEY ? [currentsReporter(currentsConfig)] : []),
   ],
   projects: [
     {
